@@ -491,7 +491,23 @@ class _GameScreenState extends State<GameScreen> {
                 key: ValueKey('q-'+currentQuestion.toString()+'-'+question),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(question, style: Theme.of(context).textTheme.headlineSmall),
+                  // Big, high-contrast equation that auto-shrinks if needed
+                  SizedBox(
+                    height: 100,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        question,
+                        style: TextStyle(
+                          fontSize: 64, // ~2x bigger baseline
+                          color: Theme.of(context).colorScheme.tertiary,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _answerController,
