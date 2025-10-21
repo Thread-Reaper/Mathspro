@@ -282,76 +282,26 @@
 
 import 'package:flutter/material.dart';
 import 'splash_screen.dart';
+import 'theme_controller.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeController.init();
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // AMOLED-friendly playful palette
-    final baseScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFFFF6D00), // vivid orange
-      brightness: Brightness.dark,
-    );
-    final colorScheme = baseScheme.copyWith(
-      // Playful secondary & tertiary accents
-      secondary: const Color(0xFF00C2A8), // teal
-      secondaryContainer: const Color(0xFF003D36),
-      tertiary: const Color(0xFFFF7AB6), // lively pink
-      tertiaryContainer: const Color(0xFF4A2C4E),
-      // AMOLED surfaces
-      surface: const Color(0xFF0A0A0A),
-      background: Colors.black,
-    );
-    return MaterialApp(
-      title: 'MathsPro Game',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: colorScheme,
-        scaffoldBackgroundColor: Colors.black,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.black,
-          foregroundColor: colorScheme.onSurface,
-          elevation: 1,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
-        ),
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: colorScheme.tertiary,
-          foregroundColor: colorScheme.onTertiary,
-        ),
-        iconTheme: IconThemeData(color: colorScheme.tertiary),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: colorScheme.primary, width: 2),
-          ),
-        ),
-        cardTheme: CardThemeData(
-          color: const Color(0xFF0D0D0D),
-          shadowColor: colorScheme.primary.withOpacity(0.25),
-          elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        ),
-        chipTheme: ChipThemeData(
-          backgroundColor: colorScheme.secondaryContainer,
-          labelStyle: TextStyle(color: colorScheme.onSecondaryContainer),
-          selectedColor: colorScheme.tertiaryContainer,
-          secondarySelectedColor: colorScheme.secondary,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          shape: StadiumBorder(side: BorderSide(color: colorScheme.secondary.withOpacity(0.3))),
-        ),
-      ),
-      home: SplashScreen(),
+    return ValueListenableBuilder<ThemeData>(
+      valueListenable: ThemeController.notifier,
+      builder: (context, theme, _) {
+        return MaterialApp(
+          title: 'MathsPro Game',
+          theme: theme,
+          home: SplashScreen(),
+        );
+      },
     );
   }
 }

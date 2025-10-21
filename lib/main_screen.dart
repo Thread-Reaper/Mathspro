@@ -3,6 +3,7 @@ import 'game_screen.dart';
 import 'history_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'settings_screen.dart';
 import 'package:flutter/widgets.dart';
 
 class MainScreen extends StatefulWidget {
@@ -262,12 +263,31 @@ class _MainScreenState extends State<MainScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Settings',
+            iconSize: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            constraints: const BoxConstraints(minWidth: 32),
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+          IconButton(
             tooltip: 'Edit name',
+            iconSize: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            constraints: const BoxConstraints(minWidth: 32),
             icon: const Icon(Icons.edit_outlined),
             onPressed: _editName,
           ),
           IconButton(
             tooltip: 'History',
+            iconSize: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            constraints: const BoxConstraints(minWidth: 32),
             icon: const Icon(Icons.history),
             onPressed: () {
               Navigator.push(
