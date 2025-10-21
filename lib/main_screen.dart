@@ -250,39 +250,31 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset(
-              'assets/app_logo.png',
-              width: 28,
-              height: 28,
-              fit: BoxFit.contain,
-              errorBuilder: (c, e, s) => const Icon(Icons.calculate),
+            // Circle logo, 1.3x previous size (28 -> 36)
+            ClipOval(
+              child: Image.asset(
+                'assets/app_logo.png',
+                width: 36,
+                height: 36,
+                fit: BoxFit.contain,
+                errorBuilder: (c, e, s) => const Icon(Icons.calculate),
+              ),
             ),
             const SizedBox(width: 8),
-            Expanded(child: Text('Welcome $_displayName')),
+            // Tap the welcome text to edit name
+            Expanded(
+              child: GestureDetector(
+                onTap: _editName,
+                child: Text(
+                  'Welcome $_displayName',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Settings',
-            iconSize: 22,
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            constraints: const BoxConstraints(minWidth: 32),
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-          ),
-          IconButton(
-            tooltip: 'Edit name',
-            iconSize: 22,
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            constraints: const BoxConstraints(minWidth: 32),
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: _editName,
-          ),
+          // Keep history as requested
           IconButton(
             tooltip: 'History',
             iconSize: 22,
@@ -307,6 +299,17 @@ class _MainScreenState extends State<MainScreen> {
             child: content,
           ),
         ),
+      ),
+      // Move settings action to bottom-right
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Settings',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          );
+        },
+        child: const Icon(Icons.settings),
       ),
     );
   }

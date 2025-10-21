@@ -41,6 +41,8 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _holdTimer;
   bool _holding = false;
   double _holdProgress = 0.0; // 0..1
+  bool _awaitingNext = false; // For unlimited time mode after feedback
+  bool? _lastWasCorrect;
   bool isAnswered = false;
 
   @override
@@ -235,6 +237,10 @@ class _GameScreenState extends State<GameScreen> {
 
     final isCorrect = userAnswer == correctAnswer;
     final bool isLast = currentQuestion >= widget.numQuestions;
+    // Pause timer immediately while showing feedback (timed mode)
+    if (widget.timeLimit > 0) {
+      _timer?.cancel();
+    }
     setState(() {
       if (isCorrect) {
         feedback = 'Correct!';
@@ -242,29 +248,48 @@ class _GameScreenState extends State<GameScreen> {
       } else {
         feedback = 'Incorrect!';
       }
+      _lastWasCorrect = isCorrect;
       _attempts.add({
         'question': question,
         'userAnswer': userAnswer,
         'correctAnswer': correctAnswer,
         'isCorrect': isCorrect,
       });
+      if (widget.timeLimit == 0) {
+        // Unlimited time: wait for explicit Next, lock inputs
+        _awaitingNext = true;
+      }
     });
 
-    // Briefly show feedback before moving on
-    await Future.delayed(const Duration(milliseconds: 700));
-
-    if (!isLast) {
-      if (widget.timeLimit > 0) {
-        _timer?.cancel();
+    if (widget.timeLimit > 0) {
+      // Timed mode: show feedback briefly then auto-advance
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!isLast) {
         remainingTime = widget.timeLimit;
+        setState(() {
+          currentQuestion++;
+        });
+        _generateQuestion();
         _startTimer();
+      } else {
+        _endGame();
       }
-      setState(() {
-        currentQuestion++;
-      });
-      _generateQuestion();
-    } else {
-      _endGame();
+    }
+  }
+
+  void _onNextUnlimited() {
+    // Only for unlimited time mode
+    if (_awaitingNext) {
+      final bool isLast = currentQuestion >= widget.numQuestions;
+      if (!isLast) {
+        setState(() {
+          currentQuestion++;
+          _awaitingNext = false;
+        });
+        _generateQuestion();
+      } else {
+        _endGame();
+      }
     }
   }
 
@@ -457,8 +482,42 @@ class _GameScreenState extends State<GameScreen> {
             Text('Question $currentQuestion of ${widget.numQuestions}', style: Theme.of(context).textTheme.titleMedium),
             if (widget.timeLimit > 0)
               Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text('Time remaining: $remainingTime s', style: Theme.of(context).textTheme.bodySmall),
+                padding: const EdgeInsets.only(top: 6.0, bottom: 6.0),
+                child: Builder(
+                  builder: (context) {
+                    final total = widget.timeLimit;
+                    final ratio = total > 0 ? (1.0 - (remainingTime.clamp(0, total) / total)) : 0.0;
+                    final baseSize = Theme.of(context).textTheme.titleLarge?.fontSize ?? 22.0;
+                    return TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 300),
+                      tween: Tween<double>(begin: 0, end: ratio),
+                      builder: (context, value, child) {
+                        final color = Color.lerp(Colors.greenAccent, Colors.redAccent, value) ?? Colors.greenAccent;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Time remaining:',
+                              style: TextStyle(
+                                fontSize: baseSize * 1.0,
+                                fontWeight: FontWeight.w600,
+                                color: color,
+                              ),
+                            ),
+                            Text(
+                              '${remainingTime}s',
+                              style: TextStyle(
+                                fontSize: baseSize * 1.8, // 1.8x bigger
+                                fontWeight: FontWeight.w800,
+                                color: color,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             const Divider(height: 24),
             // Instructions
@@ -513,6 +572,7 @@ class _GameScreenState extends State<GameScreen> {
                     controller: _answerController,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     keyboardType: TextInputType.number,
+                    enabled: !_awaitingNext,
                     decoration: InputDecoration(
                       labelText: 'Your answer',
                       helperText: 'Numbers only',
@@ -522,72 +582,105 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                   const SizedBox(height: 16),
                   Center(
-                    child: GestureDetector(
-                      onTapDown: (_) {
-                        if (_holdTimer != null) return; // already holding
-                        setState(() { _holding = true; _holdProgress = 0; });
-                        final start = DateTime.now();
-                        _holdTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
-                          final elapsed = DateTime.now().difference(start).inMilliseconds;
-                          final p = elapsed / 1000.0;
-                          if (p >= 1.0) {
-                            t.cancel();
-                            _holdTimer = null;
-                            setState(() { _holding = false; _holdProgress = 0; });
-                            _submitAnswer();
-                          } else {
-                            setState(() { _holdProgress = p; });
-                          }
-                        });
-                      },
-                      onTapUp: (_) {
-                        _holdTimer?.cancel();
-                        _holdTimer = null;
-                        setState(() { _holding = false; _holdProgress = 0; });
-                      },
-                      onTapCancel: () {
-                        _holdTimer?.cancel();
-                        _holdTimer = null;
-                        setState(() { _holding = false; _holdProgress = 0; });
-                      },
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 88,
-                            height: 88,
-                            child: CircularProgressIndicator(
-                              value: _holding ? _holdProgress : 0,
-                              strokeWidth: 6,
+                    child: _awaitingNext
+                        ? ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              shape: const CircleBorder(),
+                              padding: const EdgeInsets.all(32),
+                            ),
+                            onPressed: _onNextUnlimited,
+                            child: const Icon(Icons.arrow_forward, size: 36),
+                          )
+                        : GestureDetector(
+                            onTapDown: (_) {
+                              if (_holdTimer != null) return; // already holding
+                              setState(() {
+                                _holding = true;
+                                _holdProgress = 0;
+                              });
+                              final start = DateTime.now();
+                              _holdTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
+                                final elapsed = DateTime.now().difference(start).inMilliseconds;
+                                final p = elapsed / 1000.0;
+                                if (p >= 1.0) {
+                                  t.cancel();
+                                  _holdTimer = null;
+                                  setState(() {
+                                    _holding = false;
+                                    _holdProgress = 0;
+                                  });
+                                  _submitAnswer();
+                                } else {
+                                  setState(() {
+                                    _holdProgress = p;
+                                  });
+                                }
+                              });
+                            },
+                            onTapUp: (_) {
+                              _holdTimer?.cancel();
+                              _holdTimer = null;
+                              setState(() {
+                                _holding = false;
+                                _holdProgress = 0;
+                              });
+                            },
+                            onTapCancel: () {
+                              _holdTimer?.cancel();
+                              _holdTimer = null;
+                              setState(() {
+                                _holding = false;
+                                _holdProgress = 0;
+                              });
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 88,
+                                  height: 88,
+                                  child: CircularProgressIndicator(
+                                    value: _holding ? _holdProgress : 0,
+                                    strokeWidth: 6,
+                                  ),
+                                ),
+                                Container(
+                                  width: 72,
+                                  height: 72,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'Submit',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Submit',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 12),
                   if (feedback.isNotEmpty)
                     Center(
-                      child: Text(
-                        feedback,
-                        style: TextStyle(
-                          color: feedback == 'Correct!' ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.w600,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: (feedback == 'Correct!' ? Colors.green : Colors.red)
+                              .withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          feedback,
+                          style: TextStyle(
+                            fontSize: 42, // ~2.5x larger
+                            color: feedback == 'Correct!' ? Colors.greenAccent : Colors.redAccent,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
