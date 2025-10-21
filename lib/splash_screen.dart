@@ -44,14 +44,20 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             // App logo
             Image.asset(
-              'assets/logo.png',
+              'assets/app_logo.png',
               width: 140,
+              fit: BoxFit.contain,
               errorBuilder: (context, error, stack) => const Icon(Icons.calculate, size: 100, color: Colors.white70),
             ),
             const SizedBox(height: 20),
             const Text(
               'MathsPro',
               style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Created by TabeebZ',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
