@@ -9,6 +9,9 @@ Mathspro is a small, fun Flutter math quiz app. It lets you choose the quiz setu
   - Time limit: Unlimited or per‑question seconds
   - Operation: Addition, Subtraction, Multiplication, Division, or All
   - Difficulty: Easy, Medium, Hard, Extreme
+- Modern setup UI
+  - Vertical “wheel” number picker (Samsung‑clock style) + small numeric input
+  - Clean form fields with better spacing and a big circular Start button
 - Question rules by difficulty
   - Base digit sizes for operands per difficulty
   - Subtraction always non‑negative (no negative results)
@@ -27,6 +30,11 @@ Mathspro is a small, fun Flutter math quiz app. It lets you choose the quiz setu
   - Review of incorrect answers (your answer vs correct)
   - Button to open Previous Results
 - History page (top‑right history icon on the home screen) listing all runs
+- Settings (top‑right gear icon)
+  - Dark (AMOLED) and Light modes
+  - Five professional palettes for each mode with instant preview
+  - Theme selection is persisted between launches
+- Edit name (top‑right pencil icon) updates the greeting and persists
 
 **Tech**
 - Flutter (Material 3, dark/AMOLED‑friendly palette)
@@ -41,6 +49,8 @@ Mathspro is a small, fun Flutter math quiz app. It lets you choose the quiz setu
 - `lib/main_screen.dart` — Quiz setup (home screen)
 - `lib/game_screen.dart` — Quiz logic, animations, results saving
 - `lib/history_screen.dart` — Previous results list (expand to review mistakes)
+- `lib/settings_screen.dart` — Appearance settings (dark/light + palette)
+- `lib/theme_controller.dart` — Centralized theme state with persistence
 - `pubspec.yaml` — Dependencies and optional assets/icon configuration
 
 ---
@@ -78,9 +88,11 @@ If you have multiple devices, add `-d <device_id>`.
 
 **App Icon & Name**
 - Display name (Android): set in `android/app/src/main/AndroidManifest.xml` (`android:label="Mathspro"`).
-- App icon (optional):
-  - Place your icon at `assets/logo.png`.
-  - Uncomment the `assets:` entry in `pubspec.yaml`.
+- App icon:
+  - Place your icon at `assets/app_logo.png`.
+  - Ensure `pubspec.yaml` includes:
+    - under `flutter: assets:` → `- assets/app_logo.png`
+    - `flutter_launcher_icons` config uses `assets/app_logo.png` for both `image_path` and adaptive foreground.
   - Generate launcher icons:
     - `flutter pub get`
     - `dart run flutter_launcher_icons`
